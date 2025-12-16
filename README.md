@@ -5,72 +5,47 @@ This code has been written in Python, adapted from an ANN model originally devel
 flowchart TB
 
 %% =================================================
-%% TOP: ANN Training & CalSim Connectivity
+%% BOX 1: ANN-Based EC Estimation Framework
 %% =================================================
-subgraph TOP["Model Training & Deployment"]
-  direction LR
+subgraph BOTTOM[" "]
+  direction TB
+  BOTTOM_T["ANN-Based EC Estimation Framework"]:::title
 
-  subgraph ANNTRAIN["ANN Training"]
+  subgraph HYDRO[" "]
     direction LR
-    CAS["ANN Training"] --> TF["TensorFlow SavedModel"]
+    HYDRO_T["Hydrologic & Operational Inputs"]:::title
+
+    X1["Delta Cross Channel Operation"]:::node
+    X2["Export"]:::node
+    X3["Northern Flow"]:::node
+    X4["San Joaquin Flow"]:::node
+    X5["Astro Planning Tide"]:::node
+    X6["Delta Channel Depletion"]:::node
+    X7["Suisun Marsh Salinity Control Gate"]:::node
   end
 
-  subgraph APP["CalSim Application"]
-    direction LR
-    CS["CalSim"] <--> SURR["calsurrogate Java"]
-  end
-
-  TF --> SURR
-end
-
-
-%% =================================================
-%% BOTTOM: Full ANN Input → EC Estimation Pipeline
-%% =================================================
-subgraph BOTTOM["ANN-Based EC Estimation Framework"]
-  direction LR
-
-  %% -------------------------
-  %% Inputs
-  %% -------------------------
-  subgraph HYDRO["Hydrologic & Operational Inputs"]
+  subgraph PRE[" "]
     direction TB
-    X1["Delta Cross Channel Operation"]
-    X2["Export"]
-    X3["Northern Flow"]
-    X4["San Joaquin Flow"]
-    X5["Astro Planning Tide"]
-    X6["Delta Channel Depletion"]
-    X7["Suisun Marsh Salinity Control Gate"]
-  end
+    PRE_T["Pre-processing"]:::title
 
-  %% -------------------------
-  %% Pre-processing
-  %% -------------------------
-  subgraph PRE["Pre-processing"]
-    direction LR
-    HIST["Antecedent history<br/>18 values per variable"]
-    FLAT["Flattened input vector<br/>7 × 18 = 126"]
+    HIST["Antecedent history<br/>18 values per variable"]:::node
+    FLAT["Flattened input vector<br/>7 × 18 = 126"]:::node
     HIST --> FLAT
   end
 
-  %% -------------------------
-  %% ANN Model
-  %% -------------------------
-  subgraph NET["ANN Model Structure (TensorFlow)"]
-    direction LR
-    IN["Input layer<br/>126 nodes"]
-    H1["1st hidden layer<br/>8 nodes<br/>(Sigmoid)"]
-    H2["2nd hidden layer<br/>2 nodes<br/>(Sigmoid)"]
-    OUT["Output layer<br/>1 node<br/>(Linear / ReLU)"]
+  subgraph NET[" "]
+    direction TB
+    NET_T["ANN Model Structure (TensorFlow)"]:::title
+
+    IN["Input layer<br/>126 nodes"]:::node
+    H1["1st hidden layer<br/>8 nodes<br/>(Sigmoid)"]:::node
+    H2["2nd hidden layer<br/>2 nodes<br/>(Sigmoid)"]:::node
+    OUT["Output layer<br/>1 node<br/>(Linear / ReLU)"]:::node
     IN --> H1 --> H2 --> OUT
   end
 
-  EC["Estimated EC"]
+  EC["Estimated EC"]:::node
 
-  %% -------------------------
-  %% Connections
-  %% -------------------------
   X1 --> HIST
   X2 --> HIST
   X3 --> HIST
@@ -82,3 +57,52 @@ subgraph BOTTOM["ANN-Based EC Estimation Framework"]
   FLAT --> IN
   OUT --> EC
 end
+
+
+%% =================================================
+%% BOX 2: Model Training & Deployment
+%% =================================================
+subgraph TOP[" "]
+  direction LR
+  TOP_T["Model Training & Deployment"]:::title
+
+  %% ANN Training
+  subgraph ANNTRAIN[" "]
+    direction TB
+    ANNTRAIN_T["ANN Training"]:::title
+
+    CAS["ANN Training"]:::node
+    TF["TensorFlow SavedModel"]:::node
+    CAS --> TF
+  end
+
+  %% CalSim Application (RED BOX)
+  subgraph CALSIM_BOX[" "]
+    direction TB
+    CALSIM_T["CalSim Application"]:::title
+
+    CS["CalSim"]:::node
+    SURR["calsurrogate Java"]:::node
+    CS <--> SURR
+  end
+
+  %% Force ordering
+  ANNTRAIN --> CALSIM_BOX:::invis
+end
+
+
+%% =================================================
+%% Feedback / retraining loop
+%% =================================================
+EC <--> CAS
+
+
+%% =================================================
+%% Styling
+%% =================================================
+classDef node font-size:22px;
+classDef title font-size:26px,font-weight:bold,color:#8b0000;
+classDef invis stroke:transparent,fill:transparent,color:transparent;
+
+%% Red border for CalSim box
+style CALSIM_BOX stroke:#b00000,stroke-width:3px;
