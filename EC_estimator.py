@@ -10,13 +10,13 @@ import matplotlib.pyplot as plt
 import os
 
 
-num_feature_dims = {"sac" : 18, 
-                    "exports" : 18, 
-                    "dcc": 18, 
-                    "net_dcd" : 18, 
-                    "sjr": 18, 
-                    "tide" : 18, 
-                    "smscg" : 18}
+num_feature_dims = {"sac" : 118, 
+                    "exports" : 118, 
+                    "dcc": 118, 
+                    "net_dcd" : 118, 
+                    "sjr": 118, 
+                    "tide" : 118, 
+                    "smscg" : 118}
 
 lags_feature = None
 
