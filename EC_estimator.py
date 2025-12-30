@@ -100,35 +100,56 @@ def df_by_variable(df):
     calc_lags_feature(df)
     return df
 
-def antecedent_from_raw_np(x_np):
-    """
-    x_np: (N,118) numpy array
-    returns: (N,18) numpy array
-    """
-    current = x_np[:, 0:1]        # 0d
-    daily7  = x_np[:, 1:8]        # 1d..7d
+def antecedent_from_raw(x):
+    # x shape: (batch, 118)
+    current = x[:, 0:1]            # 0d
+    daily7  = x[:, 1:8]            # 1d..7d
 
     blocks = []
     start = 8
     for i in range(10):
-        b = x_np[:, start + 11*i : start + 11*i + 11]   # 11-day block
-        blocks.append(b.mean(axis=1, keepdims=True))    # MEAN of block
+        b = x[:, start + 11*i : start + 11*i + 11]          # 11 days
+        blocks.append(tf.reduce_mean(b, axis=1, keepdims=True))  # MEAN of block
+    blocks10 = tf.concat(blocks, axis=1)  # (batch, 10)
 
-    blocks10 = np.concatenate(blocks, axis=1)           # (N,10)
+    return tf.concat([current, daily7, blocks10], axis=1)   # (batch, 18)
+
+
+def antecedent_from_raw_np(x_np):
+    # x_np shape: (N, 118)
+    current = x_np[:, 0:1]         # 0d
+    daily7  = x_np[:, 1:8]         # 1d..7d
+
+    blocks = []
+    start = 8
+    for i in range(10):
+        b = x_np[:, start + 11*i : start + 11*i + 11]
+        blocks.append(b.mean(axis=1, keepdims=True))        # MEAN of block
+    blocks10 = np.concatenate(blocks, axis=1)               # (N,10)
+
     return np.concatenate([current, daily7, blocks10], axis=1)  # (N,18)
 
-def preprocessing_layers(df_var, inputs):
+
+def preprocessing_layers(df_var, inputs, X_train):
+    """
+    Build per-feature preprocessing layers:
+      raw 118-day input -> antecedents (18) -> Normalization
+    X_train: list of 7 numpy arrays, each (N,118), used ONLY to adapt Normalization.
+    """
     layers = []
     for fndx, feature in enumerate(feature_names()):
+        # (N,118) raw values for this feature
+        station_raw = np.asarray(X_train[fndx])
+        if station_raw.ndim != 2 or station_raw.shape[1] != num_feature_dims[feature]:
+            raise ValueError(
+                f"{feature}: expected X_train[{fndx}] shape (N,{num_feature_dims[feature]}), "
+                f"got {station_raw.shape}"
+            )
 
-        # raw training data for this feature: (N,118)
-        station_raw = df_var.loc[:, pd.IndexSlice[feature, lags_feature[feature]]].values
-        station_raw = station_raw.reshape(-1, num_feature_dims[feature])
-
-        # build antecedents for ADAPT: (N,18)
+        # Build antecedents for adapt: (N,18)
         station_ant = antecedent_from_raw_np(station_raw)
 
-        # TF graph: raw input -> antecedents -> normalize
+        # TF graph: raw -> antecedents -> normalize
         antecedents_tf = tf.keras.layers.Lambda(
             antecedent_from_raw,
             name=f"{feature}_antecedents"
