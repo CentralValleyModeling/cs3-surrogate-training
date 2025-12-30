@@ -100,18 +100,46 @@ def df_by_variable(df):
     calc_lags_feature(df)
     return df
 
+def antecedent_from_raw_np(x_np):
+    """
+    x_np: (N,118) numpy array
+    returns: (N,18) numpy array
+    """
+    current = x_np[:, 0:1]        # 0d
+    daily7  = x_np[:, 1:8]        # 1d..7d
+
+    blocks = []
+    start = 8
+    for i in range(10):
+        b = x_np[:, start + 11*i : start + 11*i + 11]   # 11-day block
+        blocks.append(b.mean(axis=1, keepdims=True))    # MEAN of block
+
+    blocks10 = np.concatenate(blocks, axis=1)           # (N,10)
+    return np.concatenate([current, daily7, blocks10], axis=1)  # (N,18)
+
 def preprocessing_layers(df_var, inputs):
     layers = []
-    for fndx,feature in enumerate(feature_names()):
+    for fndx, feature in enumerate(feature_names()):
 
-        station_df = df_var.loc[:, pd.IndexSlice[feature,lags_feature[feature]]]
-        feature_layer = Normalization()
-        feature_layer.adapt(station_df.values.reshape(-1, num_feature_dims[feature]))  
-        layers.append(feature_layer(inputs[fndx]))
+        # raw training data for this feature: (N,118)
+        station_raw = df_var.loc[:, pd.IndexSlice[feature, lags_feature[feature]]].values
+        station_raw = station_raw.reshape(-1, num_feature_dims[feature])
+
+        # build antecedents for ADAPT: (N,18)
+        station_ant = antecedent_from_raw_np(station_raw)
+
+        # TF graph: raw input -> antecedents -> normalize
+        antecedents_tf = tf.keras.layers.Lambda(
+            antecedent_from_raw,
+            name=f"{feature}_antecedents"
+        )(inputs[fndx])
+
+        norm = Normalization(name=f"{feature}_norm")
+        norm.adapt(station_ant)
+
+        layers.append(norm(antecedents_tf))
+
     return layers
-
-
-
 
 
 def build_model(layers, inputs):
