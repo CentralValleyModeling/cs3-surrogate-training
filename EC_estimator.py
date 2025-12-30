@@ -46,6 +46,22 @@ def build_model_inputs(df):
         inputs.append(feature_input)
     return inputs
 
+def antecedent_from_raw(x):
+    # x shape: (batch, 118)
+    current = x[:, 0:1]            # 0d
+    daily7  = x[:, 1:8]            # 1d..7d
+
+    # 10 blocks of 11 days: [8..18], [19..29], ... [107..117]
+    blocks = []
+    start = 8
+    for i in range(10):
+        b = x[:, start + 11*i : start + 11*i + 11]          # 11 days
+        blocks.append(tf.reduce_mean(b, axis=1, keepdims=True))  # or sum, etc.
+    blocks10 = tf.concat(blocks, axis=1)  # (batch, 10)
+
+    return tf.concat([current, daily7, blocks10], axis=1)   # (batch, 18)
+
+
 def calc_lags_feature(df):
     global lags_feature
     lags_feature = {feature: df.loc[:, pd.IndexSlice[feature,:]].columns.get_level_values(level='lag')[0:num_feature_dims[feature]] 
