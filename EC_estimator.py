@@ -3,7 +3,7 @@ import pandas as pd
 import numpy as np
 import tensorflow as tf
 from tensorflow.keras.layers import Dense, Input
-from tensorflow.keras.layers.experimental.preprocessing import Normalization, IntegerLookup #CategoryEncoding
+from tensorflow.keras.layers.experimental.preprocessing import Normalization #CategoryEncoding
 from tensorflow.keras.models import Model
 from sklearn.metrics import r2_score, mean_squared_error
 import matplotlib.pyplot as plt
