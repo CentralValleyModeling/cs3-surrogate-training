@@ -1,6 +1,11 @@
 # EC_X2_Surrogate
 This code has been written in Python, adapted from an ANN model originally developed in Matlab. A comprehensive version of this code has been developed by Nicky Sandhu is available on GitHub (https://github.com/dwr-psandhu/ann_calsim). This updated version is based on preprocessed input data and incorporates the normalization process directly into the model building phase utilizing the TensorFlow library. As a result, the trained model can be exported in .pb format, enabling seamless integration and utilization in other programming environments, including Java within Eclipse. The reference study for the original model: Jayasundara, N. C., Seneviratne, S. A., Reyes, E., & Chung, F. I. (2020). Artificial neural network for Sacramento–San Joaquin Delta flow–salinity relationship for CalSim 3.0. Journal of Water Resources Planning and Management, 146(4), 04020015. To run and test the code, first, establish the necessary environment by executing "conda env create -f environment.yml" in your Conda prompt. Once set up, you can execute train.ipynb using Jupyter Notebook.
 
+In this branch: We migrated the ANN training and inference pipeline from externally computed antecedent features to an in-model preprocessing approach.
+The updated workflow trains the model directly on raw daily predictor time series and computes all antecedents (daily lags and block averages) inside the TensorFlow graph.
+This change simplifies model connectivity, ensures consistent preprocessing between training and deployment, and enables cleaner integration with Java-based inference.
+
+
 ## ANN-Based EC Estimation Framework (Diagram 1)
 
 ```mermaid
