@@ -208,11 +208,9 @@ def build_model(layers, inputs):
     
     # First hidden layer with 8 neurons and sigmoid activation function
     x = Dense(units=8, activation='sigmoid', input_dim=x.shape[1], kernel_initializer="he_normal")(x)
-    x = tf.keras.layers.BatchNormalization()(x)
     
     # Second hidden layer with 2 neurons and sigmoid activation function
     x = Dense(units=2, activation='sigmoid', kernel_initializer="he_normal",name="hidden")(x) 
-    x = tf.keras.layers.BatchNormalization(name="batch_normalize")(x)
     
     # Output layer with 1 neuron
     output = Dense(units=1,name="emm_ec",activation="relu")(x)
