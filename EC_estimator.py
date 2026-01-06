@@ -251,7 +251,7 @@ def build_model(layers, inputs):
     ann = Model(inputs = inputs, outputs = output)
 
     ann.compile(
-        optimizer=tf.keras.optimizers.Adamax(learning_rate=0.001), 
+        optimizer=tf.keras.optimizers.Adamax(learning_rate=0.0001, clipnorm=1.0),
         loss=root_mean_squared_error, 
         metrics=['mean_absolute_error']
     )
@@ -271,8 +271,8 @@ def train_model(model, tensorboard_cb, X_train, y_train, X_test, y_test):
             restore_best_weights=True), 
             tensorboard_cb
         ], 
-        batch_size=128, 
-        epochs=1000, 
+        batch_size=256, 
+        epochs=2000, 
         verbose=0,
         shuffle=False  # keep chronological order to stabilize BatchNorm stats
     )
