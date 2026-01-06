@@ -232,9 +232,10 @@ def train_model(model, tensorboard_cb, X_train, y_train, X_test, y_test):
         validation_data=(X_test, y_test), 
         callbacks=[tf.keras.callbacks.EarlyStopping(
             monitor="val_loss", 
-            patience=1000, 
+            patience=50, 
             mode="min", 
-            restore_best_weights=True), 
+            restore_best_weights=True,
+            verbose=1), 
             tensorboard_cb
         ], 
         batch_size=128, 
