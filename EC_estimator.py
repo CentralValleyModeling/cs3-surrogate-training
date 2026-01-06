@@ -11,26 +11,36 @@ import os
 
 
 class MinMaxScaler091(Layer):
-    """Custom min-max normalization layer that scales values to [0.1, 0.9]"""
+    """Custom min-max normalization layer that scales each feature to [0.1, 0.9].
+    
+    Uses per-feature (axis=0) min/max to preserve individual feature scales.
+    """
     def __init__(self, **kwargs):
         super(MinMaxScaler091, self).__init__(**kwargs)
-        self.min_val = None
+        self.min_val = None  # shape (F,) where F = number of antecedent features (18)
         self.max_val = None
         self.range = None
     
     def adapt(self, data):
-        """Compute min and max from training data"""
-        self.min_val = tf.reduce_min(tf.cast(data, tf.float32))
-        self.max_val = tf.reduce_max(tf.cast(data, tf.float32))
+        """Compute per-feature min and max from training data.
+        
+        Args:
+            data: numpy array or tensor of shape (N, F) where F is features (18 antecedents)
+        """
+        data = tf.cast(data, tf.float32)
+        # Per-feature min/max (axis=0) instead of global scalar
+        self.min_val = tf.reduce_min(data, axis=0)  # shape (F,)
+        self.max_val = tf.reduce_max(data, axis=0)  # shape (F,)
         self.range = self.max_val - self.min_val
-        # Prevent division by zero
+        # Prevent division by zero per feature
         self.range = tf.maximum(self.range, 1e-7)
     
     def call(self, x):
-        """Scale to [0.1, 0.9] range: 0.1 + (x - min) / range * 0.8"""
+        """Scale each feature to [0.1, 0.9] range."""
         x = tf.cast(x, tf.float32)
+        # Broadcasting: x is (batch, F), min_val/range are (F,)
         normalized = (x - self.min_val) / self.range
-        # Clip to [0, 1] to handle any values outside the training range
+        # Clip to [0, 1] to handle values outside training range
         normalized = tf.clip_by_value(normalized, 0.0, 1.0)
         # Scale to [0.1, 0.9]
         return 0.1 + normalized * 0.8
@@ -239,7 +249,7 @@ def train_model(model, tensorboard_cb, X_train, y_train, X_test, y_test):
             tensorboard_cb
         ], 
         batch_size=128, 
-        epochs=1000, 
+        epochs=200, 
         verbose=0
     )
     return history, model
