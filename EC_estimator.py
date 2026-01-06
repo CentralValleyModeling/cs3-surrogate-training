@@ -201,7 +201,9 @@ def preprocessing_layers(df_var, inputs, X_train):
             name=f"{feature}_antecedents"
         )(inputs[fndx])
 
-        norm = MinMaxScaler091(name=f"{feature}_norm")
+        # Use Keras built-in Normalization (z-score) instead of custom MinMax
+        # This is more stable and properly handles serialization
+        norm = Normalization(name=f"{feature}_norm")
         norm.adapt(station_ant)
 
         layers.append(norm(antecedents_tf))
