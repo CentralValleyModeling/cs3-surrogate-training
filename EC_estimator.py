@@ -14,12 +14,13 @@ class MinMaxScaler091(Layer):
     """Custom min-max normalization layer that scales each feature to [0.1, 0.9].
     
     Uses per-feature (axis=0) min/max to preserve individual feature scales.
+    Stores stats as tf.Variable for proper graph execution.
     """
     def __init__(self, **kwargs):
         super(MinMaxScaler091, self).__init__(**kwargs)
         self.min_val = None  # shape (F,) where F = number of antecedent features (18)
         self.max_val = None
-        self.range = None
+        self.range_val = None  # renamed to avoid shadowing built-in
     
     def adapt(self, data):
         """Compute per-feature min and max from training data.
@@ -29,17 +30,22 @@ class MinMaxScaler091(Layer):
         """
         data = tf.cast(data, tf.float32)
         # Per-feature min/max (axis=0) instead of global scalar
-        self.min_val = tf.reduce_min(data, axis=0)  # shape (F,)
-        self.max_val = tf.reduce_max(data, axis=0)  # shape (F,)
-        self.range = self.max_val - self.min_val
+        mins = tf.reduce_min(data, axis=0)  # shape (F,)
+        maxs = tf.reduce_max(data, axis=0)  # shape (F,)
+        rng = maxs - mins
         # Prevent division by zero per feature
-        self.range = tf.maximum(self.range, 1e-7)
+        rng = tf.maximum(rng, 1e-7)
+        
+        # Store as tf.Variable so they persist in graph execution
+        self.min_val = tf.Variable(mins, trainable=False, name="min_val")
+        self.max_val = tf.Variable(maxs, trainable=False, name="max_val")
+        self.range_val = tf.Variable(rng, trainable=False, name="range_val")
     
     def call(self, x):
         """Scale each feature to [0.1, 0.9] range."""
         x = tf.cast(x, tf.float32)
-        # Broadcasting: x is (batch, F), min_val/range are (F,)
-        normalized = (x - self.min_val) / self.range
+        # Broadcasting: x is (batch, F), min_val/range_val are (F,)
+        normalized = (x - self.min_val) / self.range_val
         # Clip to [0, 1] to handle values outside training range
         normalized = tf.clip_by_value(normalized, 0.0, 1.0)
         # Scale to [0.1, 0.9]
@@ -217,10 +223,11 @@ def build_model(layers, inputs):
     x = tf.keras.layers.concatenate(layers)
     
     # First hidden layer with 8 neurons and sigmoid activation function
-    x = Dense(units=8, activation='sigmoid', input_dim=x.shape[1], kernel_initializer="he_normal")(x)
+    # Use glorot_uniform (Xavier) for sigmoid instead of he_normal (which is for ReLU)
+    x = Dense(units=8, activation='sigmoid', input_dim=x.shape[1], kernel_initializer="glorot_uniform")(x)
     
     # Second hidden layer with 2 neurons and sigmoid activation function
-    x = Dense(units=2, activation='sigmoid', kernel_initializer="he_normal",name="hidden")(x) 
+    x = Dense(units=2, activation='sigmoid', kernel_initializer="glorot_uniform", name="hidden")(x) 
     
     # Output layer with 1 neuron
     output = Dense(units=1,name="emm_ec",activation="relu")(x)
