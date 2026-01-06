@@ -204,14 +204,15 @@ def train_model(model, tensorboard_cb, X_train, y_train, X_test, y_test):
         validation_data=(X_test, y_test), 
         callbacks=[tf.keras.callbacks.EarlyStopping(
             monitor="val_loss", 
-            patience=1000, 
+            patience=200, 
             mode="min", 
             restore_best_weights=True), 
             tensorboard_cb
         ], 
         batch_size=128, 
         epochs=1000, 
-        verbose=0
+        verbose=0,
+        shuffle=False  # keep chronological order (no shuffling)
     )
     return history, model
 
