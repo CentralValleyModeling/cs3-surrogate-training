@@ -2,12 +2,42 @@
 import pandas as pd
 import numpy as np
 import tensorflow as tf
-from tensorflow.keras.layers import Dense, Input
+from tensorflow.keras.layers import Dense, Input, Layer
 from tensorflow.keras.layers.experimental.preprocessing import Normalization #CategoryEncoding
 from tensorflow.keras.models import Model
 from sklearn.metrics import r2_score, mean_squared_error
 import matplotlib.pyplot as plt
 import os
+
+
+class MinMaxScaler091(Layer):
+    """Custom min-max normalization layer that scales values to [0.1, 0.9]"""
+    def __init__(self, **kwargs):
+        super(MinMaxScaler091, self).__init__(**kwargs)
+        self.min_val = None
+        self.max_val = None
+        self.range = None
+    
+    def adapt(self, data):
+        """Compute min and max from training data"""
+        self.min_val = tf.reduce_min(tf.cast(data, tf.float32))
+        self.max_val = tf.reduce_max(tf.cast(data, tf.float32))
+        self.range = self.max_val - self.min_val
+        # Prevent division by zero
+        self.range = tf.maximum(self.range, 1e-7)
+    
+    def call(self, x):
+        """Scale to [0.1, 0.9] range: 0.1 + (x - min) / range * 0.8"""
+        x = tf.cast(x, tf.float32)
+        normalized = (x - self.min_val) / self.range
+        # Clip to [0, 1] to handle any values outside the training range
+        normalized = tf.clip_by_value(normalized, 0.0, 1.0)
+        # Scale to [0.1, 0.9]
+        return 0.1 + normalized * 0.8
+    
+    def get_config(self):
+        config = super().get_config()
+        return config
 
 
 num_feature_dims = {"sac" : 118, 
@@ -155,7 +185,7 @@ def preprocessing_layers(df_var, inputs, X_train):
             name=f"{feature}_antecedents"
         )(inputs[fndx])
 
-        norm = Normalization(name=f"{feature}_norm")
+        norm = MinMaxScaler091(name=f"{feature}_norm")
         norm.adapt(station_ant)
 
         layers.append(norm(antecedents_tf))
