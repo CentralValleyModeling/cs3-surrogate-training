@@ -273,7 +273,8 @@ def train_model(model, tensorboard_cb, X_train, y_train, X_test, y_test):
         ], 
         batch_size=128, 
         epochs=1000, 
-        verbose=0
+        verbose=0,
+        shuffle=False  # keep chronological order to stabilize BatchNorm stats
     )
     return history, model
 
