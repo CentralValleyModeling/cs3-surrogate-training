@@ -2,73 +2,12 @@
 import pandas as pd
 import numpy as np
 import tensorflow as tf
-from tensorflow.keras.layers import Dense, Input, Layer
+from tensorflow.keras.layers import Dense, Input
 from tensorflow.keras.layers.experimental.preprocessing import Normalization #CategoryEncoding
 from tensorflow.keras.models import Model
 from sklearn.metrics import r2_score, mean_squared_error
 import matplotlib.pyplot as plt
 import os
-
-
-class MinMaxScaler091(Layer):
-    """Custom min-max normalization layer that scales each feature to [0.1, 0.9].
-    
-    Uses per-feature (axis=0) min/max to preserve individual feature scales.
-    """
-    def __init__(self, **kwargs):
-        super(MinMaxScaler091, self).__init__(**kwargs)
-        self.data_min = None   # shape (F,) where F = number of features (18)
-        self.data_max = None
-        self.data_range = None
-    
-    def adapt(self, data):
-        """Compute per-feature min and max from training data.
-        
-        Args:
-            data: numpy array of shape (N, F) where F is features (18 antecedents)
-        """
-        data = np.asarray(data, dtype=np.float32)
-        # Per-feature min/max (axis=0)
-        self.data_min = data.min(axis=0)    # shape (F,)
-        self.data_max = data.max(axis=0)    # shape (F,)
-        self.data_range = self.data_max - self.data_min
-        # Prevent division by zero per feature
-        self.data_range = np.maximum(self.data_range, 1e-7)
-    
-    def call(self, x):
-        """Scale each feature to [0.1, 0.9] range."""
-        x = tf.cast(x, tf.float32)
-        # Convert stored numpy arrays to tensors for computation
-        min_t = tf.constant(self.data_min, dtype=tf.float32)
-        range_t = tf.constant(self.data_range, dtype=tf.float32)
-        # Broadcasting: x is (batch, F), min_t/range_t are (F,)
-        normalized = (x - min_t) / range_t
-        # Clip to [0, 1] to handle values outside training range
-        normalized = tf.clip_by_value(normalized, 0.0, 1.0)
-        # Scale to [0.1, 0.9]
-        return 0.1 + normalized * 0.8
-    
-    def get_config(self):
-        config = super().get_config()
-        # Save the statistics for model serialization
-        if self.data_min is not None:
-            config['data_min'] = self.data_min.tolist()
-            config['data_max'] = self.data_max.tolist()
-            config['data_range'] = self.data_range.tolist()
-        return config
-    
-    @classmethod
-    def from_config(cls, config):
-        # Restore from saved config
-        data_min = config.pop('data_min', None)
-        data_max = config.pop('data_max', None)
-        data_range = config.pop('data_range', None)
-        layer = cls(**config)
-        if data_min is not None:
-            layer.data_min = np.array(data_min, dtype=np.float32)
-            layer.data_max = np.array(data_max, dtype=np.float32)
-            layer.data_range = np.array(data_range, dtype=np.float32)
-        return layer
 
 
 num_feature_dims = {"sac" : 118, 
@@ -194,8 +133,8 @@ def antecedent_from_raw_np(x_np):
 def preprocessing_layers(df_var, inputs, X_train):
     """
     Build per-feature preprocessing layers:
-      raw 118-day input -> antecedents (18) -> MinMax scaling [0.1, 0.9]
-    X_train: list of 7 numpy arrays, each (N,118), used ONLY to adapt the scaler.
+      raw 118-day input -> antecedents (18) -> Normalization
+    X_train: list of 7 numpy arrays, each (N,118), used ONLY to adapt Normalization.
     """
     layers = []
     for fndx, feature in enumerate(feature_names()):
@@ -216,11 +155,10 @@ def preprocessing_layers(df_var, inputs, X_train):
             name=f"{feature}_antecedents"
         )(inputs[fndx])
 
-        # Use custom MinMaxScaler091 to scale each feature to [0.1, 0.9]
-        scaler = MinMaxScaler091(name=f"{feature}_norm")
-        scaler.adapt(station_ant)
+        norm = Normalization(name=f"{feature}_norm")
+        norm.adapt(station_ant)
 
-        layers.append(scaler(antecedents_tf))
+        layers.append(norm(antecedents_tf))
 
     return layers
 
@@ -251,7 +189,7 @@ def build_model(layers, inputs):
     ann = Model(inputs = inputs, outputs = output)
 
     ann.compile(
-        optimizer=tf.keras.optimizers.Adamax(learning_rate=0.0001, clipnorm=1.0),
+        optimizer=tf.keras.optimizers.Adamax(learning_rate=0.001), 
         loss=root_mean_squared_error, 
         metrics=['mean_absolute_error']
     )
@@ -271,10 +209,9 @@ def train_model(model, tensorboard_cb, X_train, y_train, X_test, y_test):
             restore_best_weights=True), 
             tensorboard_cb
         ], 
-        batch_size=256, 
-        epochs=2000, 
-        verbose=0,
-        shuffle=False  # keep chronological order to stabilize BatchNorm stats
+        batch_size=128, 
+        epochs=1000, 
+        verbose=0
     )
     return history, model
 
