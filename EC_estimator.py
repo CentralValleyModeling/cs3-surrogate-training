@@ -14,38 +14,35 @@ class MinMaxScaler091(Layer):
     """Custom min-max normalization layer that scales each feature to [0.1, 0.9].
     
     Uses per-feature (axis=0) min/max to preserve individual feature scales.
-    Stores stats as tf.Variable for proper graph execution.
     """
     def __init__(self, **kwargs):
         super(MinMaxScaler091, self).__init__(**kwargs)
-        self.min_val = None  # shape (F,) where F = number of antecedent features (18)
-        self.max_val = None
-        self.range_val = None  # renamed to avoid shadowing built-in
+        self.data_min = None   # shape (F,) where F = number of features (18)
+        self.data_max = None
+        self.data_range = None
     
     def adapt(self, data):
         """Compute per-feature min and max from training data.
         
         Args:
-            data: numpy array or tensor of shape (N, F) where F is features (18 antecedents)
+            data: numpy array of shape (N, F) where F is features (18 antecedents)
         """
-        data = tf.cast(data, tf.float32)
-        # Per-feature min/max (axis=0) instead of global scalar
-        mins = tf.reduce_min(data, axis=0)  # shape (F,)
-        maxs = tf.reduce_max(data, axis=0)  # shape (F,)
-        rng = maxs - mins
+        data = np.asarray(data, dtype=np.float32)
+        # Per-feature min/max (axis=0)
+        self.data_min = data.min(axis=0)    # shape (F,)
+        self.data_max = data.max(axis=0)    # shape (F,)
+        self.data_range = self.data_max - self.data_min
         # Prevent division by zero per feature
-        rng = tf.maximum(rng, 1e-7)
-        
-        # Store as tf.Variable so they persist in graph execution
-        self.min_val = tf.Variable(mins, trainable=False, name="min_val")
-        self.max_val = tf.Variable(maxs, trainable=False, name="max_val")
-        self.range_val = tf.Variable(rng, trainable=False, name="range_val")
+        self.data_range = np.maximum(self.data_range, 1e-7)
     
     def call(self, x):
         """Scale each feature to [0.1, 0.9] range."""
         x = tf.cast(x, tf.float32)
-        # Broadcasting: x is (batch, F), min_val/range_val are (F,)
-        normalized = (x - self.min_val) / self.range_val
+        # Convert stored numpy arrays to tensors for computation
+        min_t = tf.constant(self.data_min, dtype=tf.float32)
+        range_t = tf.constant(self.data_range, dtype=tf.float32)
+        # Broadcasting: x is (batch, F), min_t/range_t are (F,)
+        normalized = (x - min_t) / range_t
         # Clip to [0, 1] to handle values outside training range
         normalized = tf.clip_by_value(normalized, 0.0, 1.0)
         # Scale to [0.1, 0.9]
@@ -53,7 +50,25 @@ class MinMaxScaler091(Layer):
     
     def get_config(self):
         config = super().get_config()
+        # Save the statistics for model serialization
+        if self.data_min is not None:
+            config['data_min'] = self.data_min.tolist()
+            config['data_max'] = self.data_max.tolist()
+            config['data_range'] = self.data_range.tolist()
         return config
+    
+    @classmethod
+    def from_config(cls, config):
+        # Restore from saved config
+        data_min = config.pop('data_min', None)
+        data_max = config.pop('data_max', None)
+        data_range = config.pop('data_range', None)
+        layer = cls(**config)
+        if data_min is not None:
+            layer.data_min = np.array(data_min, dtype=np.float32)
+            layer.data_max = np.array(data_max, dtype=np.float32)
+            layer.data_range = np.array(data_range, dtype=np.float32)
+        return layer
 
 
 num_feature_dims = {"sac" : 118, 
@@ -179,8 +194,8 @@ def antecedent_from_raw_np(x_np):
 def preprocessing_layers(df_var, inputs, X_train):
     """
     Build per-feature preprocessing layers:
-      raw 118-day input -> antecedents (18) -> Normalization
-    X_train: list of 7 numpy arrays, each (N,118), used ONLY to adapt Normalization.
+      raw 118-day input -> antecedents (18) -> MinMax scaling [0.1, 0.9]
+    X_train: list of 7 numpy arrays, each (N,118), used ONLY to adapt the scaler.
     """
     layers = []
     for fndx, feature in enumerate(feature_names()):
@@ -201,12 +216,11 @@ def preprocessing_layers(df_var, inputs, X_train):
             name=f"{feature}_antecedents"
         )(inputs[fndx])
 
-        # Use Keras built-in Normalization (z-score) instead of custom MinMax
-        # This is more stable and properly handles serialization
-        norm = Normalization(name=f"{feature}_norm")
-        norm.adapt(station_ant)
+        # Use custom MinMaxScaler091 to scale each feature to [0.1, 0.9]
+        scaler = MinMaxScaler091(name=f"{feature}_norm")
+        scaler.adapt(station_ant)
 
-        layers.append(norm(antecedents_tf))
+        layers.append(scaler(antecedents_tf))
 
     return layers
 
@@ -224,11 +238,13 @@ def build_model(layers, inputs):
     tensorboard_cb = tf.keras.callbacks.TensorBoard(log_dir=root_logdir)
     x = tf.keras.layers.concatenate(layers)
     
-    # First hidden layer - use tanh instead of sigmoid to avoid saturation
-    x = Dense(units=8, activation='tanh', input_dim=x.shape[1], kernel_initializer="glorot_uniform")(x)
+    # First hidden layer with 8 neurons and sigmoid activation function
+    x = Dense(units=8, activation='sigmoid', input_dim=x.shape[1], kernel_initializer="he_normal")(x)
+    x = tf.keras.layers.BatchNormalization()(x)
     
-    # Second hidden layer - use tanh instead of sigmoid
-    x = Dense(units=2, activation='tanh', kernel_initializer="glorot_uniform", name="hidden")(x) 
+    # Second hidden layer with 2 neurons and sigmoid activation function
+    x = Dense(units=2, activation='sigmoid', kernel_initializer="he_normal",name="hidden")(x) 
+    x = tf.keras.layers.BatchNormalization(name="batch_normalize")(x)
     
     # Output layer with 1 neuron
     output = Dense(units=1,name="emm_ec",activation="relu")(x)
@@ -250,14 +266,13 @@ def train_model(model, tensorboard_cb, X_train, y_train, X_test, y_test):
         validation_data=(X_test, y_test), 
         callbacks=[tf.keras.callbacks.EarlyStopping(
             monitor="val_loss", 
-            patience=50, 
+            patience=1000, 
             mode="min", 
-            restore_best_weights=True,
-            verbose=1), 
+            restore_best_weights=True), 
             tensorboard_cb
         ], 
         batch_size=128, 
-        epochs=200, 
+        epochs=1000, 
         verbose=0
     )
     return history, model
