@@ -224,12 +224,11 @@ def build_model(layers, inputs):
     tensorboard_cb = tf.keras.callbacks.TensorBoard(log_dir=root_logdir)
     x = tf.keras.layers.concatenate(layers)
     
-    # First hidden layer with 8 neurons and sigmoid activation function
-    # Use glorot_uniform (Xavier) for sigmoid instead of he_normal (which is for ReLU)
-    x = Dense(units=8, activation='sigmoid', input_dim=x.shape[1], kernel_initializer="glorot_uniform")(x)
+    # First hidden layer - use tanh instead of sigmoid to avoid saturation
+    x = Dense(units=8, activation='tanh', input_dim=x.shape[1], kernel_initializer="glorot_uniform")(x)
     
-    # Second hidden layer with 2 neurons and sigmoid activation function
-    x = Dense(units=2, activation='sigmoid', kernel_initializer="glorot_uniform", name="hidden")(x) 
+    # Second hidden layer - use tanh instead of sigmoid
+    x = Dense(units=2, activation='tanh', kernel_initializer="glorot_uniform", name="hidden")(x) 
     
     # Output layer with 1 neuron
     output = Dense(units=1,name="emm_ec",activation="relu")(x)
