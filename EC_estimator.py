@@ -177,20 +177,18 @@ def build_model(layers, inputs):
     x = tf.keras.layers.concatenate(layers)
     
     # First hidden layer with 8 neurons and sigmoid activation function
-    x = Dense(units=8, activation='sigmoid', input_dim=x.shape[1], kernel_initializer="he_normal")(x)
-    x = tf.keras.layers.BatchNormalization()(x)
+    x = Dense(units=8, activation='sigmoid', input_dim=x.shape[1])(x)
     
     # Second hidden layer with 2 neurons and sigmoid activation function
-    x = Dense(units=2, activation='sigmoid', kernel_initializer="he_normal",name="hidden")(x) 
-    x = tf.keras.layers.BatchNormalization(name="batch_normalize")(x)
+    x = Dense(units=2, activation='sigmoid', name="hidden")(x) 
     
-    # Output layer with 1 neuron
-    output = Dense(units=1,name="emm_ec",activation="relu")(x)
+    # Output layer with 1 neuron and LINEAR activation (matches original annutilsr approach)
+    output = Dense(units=1, name="emm_ec", activation='linear')(x)
     ann = Model(inputs = inputs, outputs = output)
 
     ann.compile(
-        optimizer=tf.keras.optimizers.Adamax(learning_rate=0.001), 
-        loss=root_mean_squared_error, 
+        optimizer=tf.keras.optimizers.Adam(learning_rate=0.001), 
+        loss='mse', 
         metrics=['mean_absolute_error']
     )
     
@@ -198,19 +196,39 @@ def build_model(layers, inputs):
 
 
 
-def train_model(model, tensorboard_cb, X_train, y_train, X_test, y_test):
+def train_model(model, tensorboard_cb, X_train, y_train, X_test, y_test,
+                epochs=1000, patience=1000, batch_size=128, min_delta=0,
+                use_lr_scheduler=False, lr_factor=0.5, lr_patience=20, 
+                lr_min_delta=1e-4, lr_min=1e-6):
+    callbacks = [
+        tf.keras.callbacks.EarlyStopping(
+            monitor="val_loss", 
+            patience=patience, 
+            mode="min",
+            min_delta=min_delta,
+            restore_best_weights=True
+        ), 
+        tensorboard_cb
+    ]
+    
+    if use_lr_scheduler:
+        callbacks.append(
+            tf.keras.callbacks.ReduceLROnPlateau(
+                monitor='val_loss',
+                factor=lr_factor,
+                patience=lr_patience,
+                min_delta=lr_min_delta,
+                min_lr=lr_min,
+                verbose=1
+            )
+        )
+    
     history = model.fit(
         X_train, y_train, 
         validation_data=(X_test, y_test), 
-        callbacks=[tf.keras.callbacks.EarlyStopping(
-            monitor="val_loss", 
-            patience=1000, 
-            mode="min", 
-            restore_best_weights=True), 
-            tensorboard_cb
-        ], 
-        batch_size=128, 
-        epochs=1000, 
+        callbacks=callbacks, 
+        batch_size=batch_size, 
+        epochs=epochs, 
         verbose=0
     )
     return history, model
@@ -269,7 +287,15 @@ def make_predictions(model, data, num_features):
     return predictions
 
 
+import joblib
 
+def save_scaler(scaler, path):
+    """Save a scaler object to disk using joblib."""
+    joblib.dump(scaler, path)
+
+def load_scaler(path):
+    """Load a scaler object from disk using joblib."""
+    return joblib.load(path)
 
 
 
