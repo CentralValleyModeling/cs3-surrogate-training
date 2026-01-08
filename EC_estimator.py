@@ -197,7 +197,7 @@ def build_model(layers, inputs):
 
 
 def train_model(model, tensorboard_cb, X_train, y_train, X_test, y_test,
-                epochs=1000, patience=1000, batch_size=128, min_delta=0,
+                epochs=200, patience=1000, batch_size=128, min_delta=0,
                 use_lr_scheduler=False, lr_factor=0.5, lr_patience=20, 
                 lr_min_delta=1e-4, lr_min=1e-6):
     callbacks = [
