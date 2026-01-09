@@ -3,7 +3,7 @@ import pandas as pd
 import numpy as np
 import tensorflow as tf
 from tensorflow.keras.layers import Dense, Input
-from tensorflow.keras.layers.experimental.preprocessing import Normalization #CategoryEncoding
+from tensorflow.keras.layers.experimental.preprocessing import Normalization
 from tensorflow.keras.models import Model
 from sklearn.metrics import r2_score, mean_squared_error
 import matplotlib.pyplot as plt
@@ -120,23 +120,22 @@ def build_model(layers, inputs):
     x = tf.keras.layers.BatchNormalization(name="batch_normalize")(x)
     
     # Output layer with 1 neuron
-    output = Dense(units=1,name="emm_ec",activation="relu")(x)
+    output = Dense(units=1,name="emm_ec",activation="linear")(x)
     ann = Model(inputs = inputs, outputs = output)
 
     ann.compile(
-        optimizer=tf.keras.optimizers.Adamax(learning_rate=0.001), 
-        loss=root_mean_squared_error, 
-        metrics=['mean_absolute_error']
+        optimizer=tf.keras.optimizers.Adam(learning_rate=0.001), 
+        loss="mse"
     )
     
     return ann, tensorboard_cb
 
 
 
-def train_model(model, tensorboard_cb, X_train, y_train, X_test, y_test):
+def train_model(model, tensorboard_cb, X_train, y_train, X_val, y_val):
     history = model.fit(
         X_train, y_train, 
-        validation_data=(X_test, y_test), 
+        validation_data=(X_val, y_val), 
         callbacks=[tf.keras.callbacks.EarlyStopping(
             monitor="val_loss", 
             patience=1000, 
@@ -145,7 +144,7 @@ def train_model(model, tensorboard_cb, X_train, y_train, X_test, y_test):
             tensorboard_cb
         ], 
         batch_size=128, 
-        epochs=1000, 
+        epochs=5000, 
         verbose=0
     )
     return history, model
@@ -170,10 +169,10 @@ def calculate_metrics(model_name, y_train, y_train_pred, y_test, y_test_pred):
     # Return results as a dictionary
     return {
         'Model': model_name,
-        'Train_R2': round(r2_train, 2),
+        'Train_R2': round(r2_train, 3),
         'Train_RMSE': round(rmse_train, 2),
         'Train_Percentage_Bias': round(percentage_bias_train, 2),
-        'Test_R2': round(r2_test, 2),
+        'Test_R2': round(r2_test, 3),
         'Test_RMSE': round(rmse_test, 2),
         'Test_Percentage_Bias': round(percentage_bias_test, 2),
     }
