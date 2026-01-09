@@ -145,7 +145,7 @@ def train_model(model, tensorboard_cb, X_train, y_train, X_test, y_test):
             tensorboard_cb
         ], 
         batch_size=128, 
-        epochs=1000, 
+        epochs=200, 
         verbose=0
     )
     return history, model
