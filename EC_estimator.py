@@ -197,7 +197,7 @@ def build_model(layers, inputs):
 
 
 def train_model(model, tensorboard_cb, X_train, y_train, X_test, y_test,
-                epochs=200, patience=1000, batch_size=128, min_delta=0,
+                epochs=10000, patience=1000, batch_size=128, min_delta=0,
                 use_lr_scheduler=False, lr_factor=0.5, lr_patience=20, 
                 lr_min_delta=1e-4, lr_min=1e-6):
     callbacks = [
@@ -253,10 +253,10 @@ def calculate_metrics(model_name, y_train, y_train_pred, y_test, y_test_pred):
     # Return results as a dictionary
     return {
         'Model': model_name,
-        'Train_R2': round(r2_train, 2),
+        'Train_R2': round(r2_train, 3),
         'Train_RMSE': round(rmse_train, 2),
         'Train_Percentage_Bias': round(percentage_bias_train, 2),
-        'Test_R2': round(r2_test, 2),
+        'Test_R2': round(r2_test, 3),
         'Test_RMSE': round(rmse_test, 2),
         'Test_Percentage_Bias': round(percentage_bias_test, 2),
     }
