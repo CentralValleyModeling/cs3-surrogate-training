@@ -103,85 +103,66 @@ style CALSIM_BOX stroke:#b00000,stroke-width:3px;
 
 ```mermaid
 flowchart TB
-
 %% =================================================
 %% BOX 1: ANN-Based X2 Estimation Framework
 %% =================================================
 subgraph BOTTOM[" "]
   direction TB
   BOTTOM_T["ANN-Based X2 Estimation Framework"]:::title
-
   subgraph HYDRO[" "]
     direction LR
     HYDRO_T["Hydrologic & Operational Inputs"]:::title
-
     X1["NDOI"]:::node
     X2["Suisun Marsh Salinity Control Gate"]:::node
     X3["Astro Planning Tide"]:::node
   end
-
   subgraph PRE[" "]
     direction TB
     PRE_T["Pre-processing"]:::title
-
     HIST["Antecedent history<br/>18 values per variable"]:::node
     FLAT["Flattened input vector<br/>3 × 18 = 54"]:::node
     HIST --> FLAT
   end
-
   subgraph NET[" "]
     direction TB
     NET_T["ANN Model Structure (TensorFlow)"]:::title
-
     IN["Input layer<br/>54 nodes"]:::node
     H1["1st hidden layer<br/>8 nodes<br/>(Sigmoid)"]:::node
     H2["2nd hidden layer<br/>2 nodes<br/>(Sigmoid)"]:::node
     OUT["Output layer<br/>1 node<br/>(Linear / ReLU)"]:::node
     IN --> H1 --> H2 --> OUT
   end
-
   X1 --> HIST
   X2 --> HIST
   X3 --> HIST
       
-
   FLAT --> IN
-  OUT --> EC
+  OUT --> X2OUT["X2"]:::node
 end
-
 %% =================================================
 %% BOX 2: Model Training & Deployment
 %% =================================================
 subgraph TOP[" "]
   direction LR
   TOP_T["Model Training & Deployment"]:::title
-
   subgraph ANNTRAIN[" "]
     direction TB
     ANNTRAIN_T["ANN Training"]:::title
-
     CAS["ANN Training"]:::node
     TF["TensorFlow SavedModel"]:::node
     CAS --> TF
   end
-
   subgraph CALSIM_BOX[" "]
     direction TB
     CALSIM_T["CalSim Application"]:::title
-
     CS["CalSim"]:::node
     SURR["calsurrogate Java"]:::node
     CS <--> SURR
   end
-
   ANNTRAIN --> CALSIM_BOX:::invis
 end
-
-EC <--> CAS
-
+X2OUT <--> CAS
 classDef node font-size:22px;
 classDef title font-size:26px,font-weight:bold,color:#8b0000;
 classDef invis stroke:transparent,fill:transparent,color:transparent;
-
 style CALSIM_BOX stroke:#b00000,stroke-width:3px;
-
