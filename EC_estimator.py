@@ -2,12 +2,106 @@
 import pandas as pd
 import numpy as np
 import tensorflow as tf
-from tensorflow.keras.layers import Dense, Input
+from tensorflow.keras.layers import Dense, Input, Layer
 from tensorflow.keras.layers.experimental.preprocessing import Normalization #CategoryEncoding
 from tensorflow.keras.models import Model
 from sklearn.metrics import r2_score, mean_squared_error
 import matplotlib.pyplot as plt
 import os
+
+
+# ========================================================================
+# Custom MinMax Scaling Layers [0.1, 0.9]
+# ========================================================================
+
+class MinMaxScaleLayer(Layer):
+    """Scale inputs to [0.1, 0.9] range based on computed min/max."""
+    
+    def __init__(self, feature_range=(0.1, 0.9), **kwargs):
+        super(MinMaxScaleLayer, self).__init__(**kwargs)
+        self.feature_range = feature_range
+        self.data_min = None
+        self.data_max = None
+        self.scale = None
+        self.min_range = feature_range[0]
+        self.max_range = feature_range[1]
+    
+    def adapt(self, data):
+        """Compute min/max from training data."""
+        data = np.asarray(data)
+        self.data_min = np.min(data, axis=0, keepdims=True)
+        self.data_max = np.max(data, axis=0, keepdims=True)
+        # Avoid division by zero
+        self.scale = self.data_max - self.data_min
+        self.scale = np.where(self.scale == 0, 1.0, self.scale)
+    
+    def call(self, inputs):
+        """Scale to [0.1, 0.9]."""
+        if self.data_min is None or self.data_max is None:
+            raise ValueError("Layer must be adapted before use. Call adapt() with training data.")
+        
+        data_min = tf.constant(self.data_min, dtype=inputs.dtype)
+        scale = tf.constant(self.scale, dtype=inputs.dtype)
+        
+        # MinMax: (x - min) / (max - min)
+        normalized = (inputs - data_min) / scale
+        # Scale to [0.1, 0.9]
+        scaled = normalized * (self.max_range - self.min_range) + self.min_range
+        return scaled
+    
+    def get_config(self):
+        config = super().get_config()
+        config.update({
+            'feature_range': self.feature_range,
+            'data_min': self.data_min.tolist() if self.data_min is not None else None,
+            'data_max': self.data_max.tolist() if self.data_max is not None else None,
+            'scale': self.scale.tolist() if self.scale is not None else None,
+        })
+        return config
+
+
+class InverseMinMaxScaleLayer(Layer):
+    """Inverse transform from [0.1, 0.9] back to original range."""
+    
+    def __init__(self, feature_range=(0.1, 0.9), **kwargs):
+        super(InverseMinMaxScaleLayer, self).__init__(**kwargs)
+        self.feature_range = feature_range
+        self.data_min = None
+        self.data_max = None
+        self.scale = None
+        self.min_range = feature_range[0]
+        self.max_range = feature_range[1]
+    
+    def adapt(self, data):
+        """Compute min/max from original data."""
+        data = np.asarray(data)
+        self.data_min = np.min(data, axis=0, keepdims=True)
+        self.data_max = np.max(data, axis=0, keepdims=True)
+        self.scale = self.data_max - self.data_min
+        self.scale = np.where(self.scale == 0, 1.0, self.scale)
+    
+    def call(self, inputs):
+        """Inverse scale from [0.1, 0.9] to original range."""
+        if self.data_min is None or self.data_max is None:
+            raise ValueError("Layer must be adapted before use. Call adapt() with training data.")
+        
+        data_min = tf.constant(self.data_min, dtype=inputs.dtype)
+        scale = tf.constant(self.scale, dtype=inputs.dtype)
+        
+        # Inverse: (x - 0.1) / (0.9 - 0.1) * (max - min) + min
+        normalized = (inputs - self.min_range) / (self.max_range - self.min_range)
+        original = normalized * scale + data_min
+        return original
+    
+    def get_config(self):
+        config = super().get_config()
+        config.update({
+            'feature_range': self.feature_range,
+            'data_min': self.data_min.tolist() if self.data_min is not None else None,
+            'data_max': self.data_max.tolist() if self.data_max is not None else None,
+            'scale': self.scale.tolist() if self.scale is not None else None,
+        })
+        return config
 
 
 num_feature_dims = {"sac" : 118, 
@@ -133,10 +227,12 @@ def antecedent_from_raw_np(x_np):
 def preprocessing_layers(df_var, inputs, X_train):
     """
     Build per-feature preprocessing layers:
-      raw 118-day input -> antecedents (18) -> Normalization
-    X_train: list of 7 numpy arrays, each (N,118), used ONLY to adapt Normalization.
+      raw 118-day input -> MinMaxScale [0.1,0.9] -> antecedents (18) -> z-score Normalization
+    X_train: list of 7 numpy arrays, each (N,118), used ONLY to adapt layers.
     """
     layers = []
+    scale_layers = []  # Store for later access if needed
+    
     for fndx, feature in enumerate(feature_names()):
         # (N,118) raw values for this feature
         station_raw = np.asarray(X_train[fndx])
@@ -146,31 +242,40 @@ def preprocessing_layers(df_var, inputs, X_train):
                 f"got {station_raw.shape}"
             )
 
-        # Build antecedents for adapt: (N,18)
-        station_ant = antecedent_from_raw_np(station_raw)
+        # Step 1: MinMax scale raw inputs to [0.1, 0.9]
+        scale_input = MinMaxScaleLayer(feature_range=(0.1, 0.9), name=f"{feature}_scale_input")
+        scale_input.adapt(station_raw)
+        scaled_raw = scale_input(inputs[fndx])
+        scale_layers.append(scale_input)
 
-        # TF graph: raw -> antecedents -> normalize
+        # Step 2: Build antecedents from SCALED raw values
         antecedents_tf = tf.keras.layers.Lambda(
             antecedent_from_raw,
             name=f"{feature}_antecedents"
-        )(inputs[fndx])
+        )(scaled_raw)
 
+        # Compute antecedents for z-score normalization adapt
+        station_ant = antecedent_from_raw_np(station_raw)
+
+        # Step 3: Z-score normalize antecedents
         norm = Normalization(name=f"{feature}_norm")
         norm.adapt(station_ant)
 
         layers.append(norm(antecedents_tf))
 
-    return layers
+    return layers, scale_layers
 
 
-def build_model(layers, inputs):
-    """ Builds the standard CalSIM ANN
+def build_model(layers, inputs, y_train=None):
+    """ Builds the standard CalSIM ANN with output scaling layers
         Parameters
         ----------
         layers : list  
-        List of tf.Layers
+        List of tf.Layers from preprocessing_layers
 
-        inputs: dataframe
+        inputs: list of Input layers
+        
+        y_train: numpy array for adapting output scaler (optional, for inference-only models)
     """        
 
     tensorboard_cb = tf.keras.callbacks.TensorBoard(log_dir=root_logdir)
@@ -182,9 +287,20 @@ def build_model(layers, inputs):
     # Second hidden layer with 2 neurons and sigmoid activation function
     x = Dense(units=2, activation='sigmoid', name="hidden")(x) 
     
-    # Output layer with 1 neuron and LINEAR activation (matches original annutilsr approach)
-    output = Dense(units=1, name="emm_ec", activation='linear')(x)
-    ann = Model(inputs = inputs, outputs = output)
+    # Output layer with 1 neuron and LINEAR activation (no scaling here)
+    x = Dense(units=1, name="emm_ec_raw", activation='linear')(x)
+    
+    # Scale output to [0.1, 0.9]
+    if y_train is not None:
+        y_data = np.asarray(y_train).reshape(-1, 1) if isinstance(y_train, pd.DataFrame) else np.asarray(y_train).reshape(-1, 1)
+    else:
+        y_data = np.array([[0.0]])  # Dummy for inference model
+    
+    output_scaler = MinMaxScaleLayer(feature_range=(0.1, 0.9), name="output_scale")
+    output_scaler.adapt(y_data)
+    output_scaled = output_scaler(x)
+    
+    ann = Model(inputs=inputs, outputs=output_scaled)
 
     ann.compile(
         optimizer=tf.keras.optimizers.Adam(learning_rate=0.001), 
@@ -192,12 +308,50 @@ def build_model(layers, inputs):
         metrics=['mean_absolute_error']
     )
     
+    # Store scaler for later inverse transform
+    ann.output_scaler = output_scaler
+    
     return ann, tensorboard_cb
 
 
+def create_inference_model(model):
+    """
+    Create an inference model that outputs original (unscaled) values.
+    Extracts the intermediate layers and adds inverse scaling at the end.
+    
+    Parameters
+    ----------
+    model : tf.keras.Model
+        The trained model with output scaling
+    
+    Returns
+    -------
+    inference_model : tf.keras.Model
+        Model that outputs inverse-scaled (original units) predictions
+    """
+    # Get the outputs before scaling (emm_ec_raw layer)
+    intermediate_output = model.get_layer('emm_ec_raw').output
+    
+    # Create inverse scaling layer
+    inverse_scaler = InverseMinMaxScaleLayer(feature_range=(0.1, 0.9), name="output_inverse_scale")
+    inverse_scaler.adapt(np.array([[model.output_scaler.data_min[0, 0], model.output_scaler.data_max[0, 0]]]))
+    # Manually set the min/max from the trained model
+    inverse_scaler.data_min = model.output_scaler.data_min
+    inverse_scaler.data_max = model.output_scaler.data_max
+    inverse_scaler.scale = model.output_scaler.scale
+    
+    # Create final output with inverse scaling
+    final_output = inverse_scaler(model.get_layer('emm_ec_raw').output)
+    
+    # Create inference model
+    inference_model = Model(inputs=model.inputs, outputs=final_output)
+    inference_model.output_scaler = model.output_scaler
+    
+    return inference_model
+
 
 def train_model(model, tensorboard_cb, X_train, y_train, X_test, y_test,
-                epochs=10000, patience=1000, batch_size=128, min_delta=0,
+                epochs=1000, patience=1000, batch_size=128, min_delta=0,
                 use_lr_scheduler=False, lr_factor=0.5, lr_patience=20, 
                 lr_min_delta=1e-4, lr_min=1e-6):
     callbacks = [
