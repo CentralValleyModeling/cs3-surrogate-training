@@ -167,10 +167,10 @@ def calculate_metrics(model_name, y_train, y_train_pred, y_test, y_test_pred):
     # Return results as a dictionary
     return {
         'Model': model_name,
-        'Train_R2': round(r2_train, 2),
+        'Train_R2': round(r2_train, 3),
         'Train_RMSE': round(rmse_train, 2),
         'Train_Percentage_Bias': round(percentage_bias_train, 2),
-        'Test_R2': round(r2_test, 2),
+        'Test_R2': round(r2_test, 3),
         'Test_RMSE': round(rmse_test, 2),
         'Test_Percentage_Bias': round(percentage_bias_test, 2),
     }
