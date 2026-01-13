@@ -242,7 +242,7 @@ def antecedent_from_raw_np(x_np):
 def preprocessing_layers(df_var, inputs, X_train):
     """
     Build per-feature preprocessing layers:
-      raw 118-day input -> antecedents (18) -> Normalization
+      raw 118-day input -> antecedents (18) -> z-score normalization
     X_train: list of 7 numpy arrays, each (N,118), used ONLY to adapt Normalization.
     """
     layers = []
@@ -258,7 +258,7 @@ def preprocessing_layers(df_var, inputs, X_train):
         # Build antecedents for adapt: (N,18)
         station_ant = antecedent_from_raw_np(station_raw)
 
-        # TF graph: raw -> antecedents -> normalize
+        # TF graph: raw -> antecedents -> z-score normalization
         antecedents_tf = tf.keras.layers.Lambda(
             antecedent_from_raw,
             name=f"{feature}_antecedents"
