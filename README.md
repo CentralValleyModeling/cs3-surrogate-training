@@ -76,7 +76,7 @@ flowchart TB
     
     EVAL[Model Evaluation<br/>• R² Score<br/>• RMSE<br/>• Scatter Plots<br/>• Time Series<br/>• Monthly Aggregations]:::process
     
-    SAVE[Save Models<br/>• Training Model (.pb)<br/>• Inference Model (.pb)<br/>Ready for Java deployment]:::process
+    SAVE[Save Models<br/>• Training Model in .pb format<br/>• Inference Model in .pb format<br/>Ready for Java deployment]:::process
     
     FINAL([EC Predictions<br/>Original Units<br/>Ready for CalSim]):::data
     
