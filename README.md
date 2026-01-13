@@ -30,7 +30,7 @@ flowchart TB
     SPLIT[Split by Date Ranges<br/>Train: 1940-2015<br/>Test: 1923-1939]:::process
     
     %% Window Creation
-    WINDOW[Create 118-Day Sliding Windows<br/>For each day t:<br/>Input: days [t-117 to t]<br/>Target: EC at day t]:::process
+    WINDOW[Create 118-Day Sliding Windows<br/>For each day t:<br/>Input: days from t-117 to t<br/>Target: EC at day t]:::process
     
     %% Format Conversion
     FORMAT[Convert to 7-Input Format<br/>Each input: N × 118 array<br/>One per predictor variable]:::process
@@ -60,11 +60,11 @@ flowchart TB
     end
     
     %% Training Scaling
-    SKLEARN[sklearn MinMaxScaler<br/>Scale targets to [0.1, 0.9]<br/>For training stability]:::process
+    SKLEARN[sklearn MinMaxScaler<br/>Scale targets to range 0.1 to 0.9<br/>For training stability]:::process
     
-    TRAIN[Training Process<br/>Model learns to output<br/>scaled predictions [0.1, 0.9]<br/>Epochs: 1000, Patience: 1000]:::process
+    TRAIN[Training Process<br/>Model learns to output<br/>scaled predictions in range 0.1 to 0.9<br/>Epochs: 1000, Patience: 1000]:::process
     
-    TRAINED[Trained Model<br/>Outputs: Scaled [0.1, 0.9]]:::model
+    TRAINED[Trained Model<br/>Outputs: Scaled in range 0.1 to 0.9]:::model
     
     %% Inference Model Creation
     INFERENCE_CREATE[Create Inference Model<br/>Add InverseMinMaxScaleLayer<br/>to trained model]:::process
