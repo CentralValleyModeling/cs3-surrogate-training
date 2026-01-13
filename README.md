@@ -16,7 +16,7 @@ This code has been written in Python, adapted from an ANN model originally devel
 
 This design ensures that all preprocessing, normalization, and scaling operations are part of the TensorFlow graph, eliminating external dependencies and guaranteeing identical preprocessing between training and deployment.
 
-## Training and Inference Pipeline
+## Training and Inference Pipeline based on 7 features
 
 The following flowchart illustrates the complete end-to-end process from raw data to EC predictions, showing how preprocessing, training, and inference are integrated:
 
@@ -139,7 +139,7 @@ flowchart TB
 - Identical preprocessing guaranteed between training and production
 
 
-## ANN-Based EC Estimation Framework (Diagram 1)
+## ANN-Based EC Estimation Framework (Diagram 1) based on 126 inputs (preprocessed)
 
 ```mermaid
 flowchart TB
@@ -242,7 +242,7 @@ style CALSIM_BOX stroke:#b00000,stroke-width:3px;
 
 ---
 
-## ANN-Based X2 Estimation Framework (Diagram 2)
+## ANN-Based X2 Estimation Framework (Diagram 2) based on 54 inputs (preprocessed)
 
 ```mermaid
 flowchart TB
