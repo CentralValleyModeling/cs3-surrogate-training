@@ -27,10 +27,13 @@ flowchart TB
     LOAD[Load EC_inputs.csv<br/>Parse dates, sort chronologically]:::process
     
     %% Data Splitting
-    SPLIT[Split by Date Ranges<br/>Train: 1940-2015<br/>Test: 1923-1939]:::process
+    SPLIT[Split by Date Ranges<br/>Test: 1923-1939 holdout<br/>Training: 1940-2015 full]:::process
     
     %% Window Creation
-    WINDOW[Create 118-Day Sliding Windows<br/>For each day t:<br/>Input: days from t-117 to t<br/>Target: EC at day t]:::process
+    WINDOW[Create 118-Day Sliding Windows<br/>From consecutive days in each period<br/>Input: days from t-117 to t<br/>Target: EC at day t]:::process
+    
+    %% Train/Val Split
+    TRAINVAL[Random 80/20 Split of Training Windows<br/>80% calibration, 20% validation<br/>Split applied to complete windows<br/>preserves temporal continuity]:::process
     
     %% Format Conversion
     FORMAT[Convert to 7-Input Format<br/>Each input: N × 118 array<br/>One per predictor variable]:::process
@@ -60,9 +63,9 @@ flowchart TB
     end
     
     %% Training Scaling
-    SKLEARN[sklearn MinMaxScaler<br/>Scale targets to range 0.1 to 0.9<br/>For training stability]:::process
+    SKLEARN[sklearn MinMaxScaler<br/>Scale targets to range 0.1 to 0.9<br/>For training stability<br/>Applied to train, val, and test]:::process
     
-    TRAIN[Training Process<br/>Model learns to output<br/>scaled predictions in range 0.1 to 0.9<br/>Epochs: 1000, Patience: 1000]:::process
+    TRAIN[Training Process<br/>Model learns to output<br/>scaled predictions in range 0.1 to 0.9<br/>Validation on 20% holdout<br/>Epochs: 3000, Patience: 1000]:::process
     
     TRAINED[Trained Model<br/>Outputs: Scaled in range 0.1 to 0.9]:::model
     
@@ -84,7 +87,8 @@ flowchart TB
     START --> LOAD
     LOAD --> SPLIT
     SPLIT --> WINDOW
-    WINDOW --> FORMAT
+    WINDOW --> TRAINVAL
+    TRAINVAL --> FORMAT
     FORMAT --> INPUT
     CONCAT --> HIDDEN1
     OUTPUT --> SKLEARN
@@ -111,21 +115,24 @@ flowchart TB
 
 **1. Data Preparation:**
 - Raw daily time series loaded from CSV
-- Train/test split based on historical date ranges
+- Test set (1923-1939) separated as final holdout
+- Training data (1940-2015) used for model development
 - Sliding windows create sequences of 118 consecutive days
-- Each sample represents history ending at prediction day t
+- Random 80/20 split of training windows into calibration/validation sets
+- Split preserves temporal continuity within each window
 
 **2. Embedded Preprocessing (in TensorFlow graph):**
 - **Antecedent Extraction**: Converts 118 daily values → 18 features per variable
   - 1 current day value
   - 7 individual daily lags (t-1, t-2, ..., t-7)
   - 10 block averages covering remaining history
-- **Z-Score Normalization**: Standardizes each feature using training data statistics
+- **Z-Score Normalization**: Standardizes each feature using full training data statistics
 - **Feature Concatenation**: Combines 7 variables × 18 features = 126 total inputs
 
 **3. Training:**
 - Output targets scaled to [0.1, 0.9] using sklearn for numerical stability
 - Model learns to predict in scaled space
+- Validation set (20% of training windows) monitors generalization
 - Early stopping prevents overfitting
 
 **4. Inference:**
