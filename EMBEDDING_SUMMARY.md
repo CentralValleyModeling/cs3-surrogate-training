@@ -1,6 +1,6 @@
 # Full End-to-End Scaling Implementation
 
-## ✅ Successfully Implemented: Everything Within TensorFlow Model
+## Successfully Implemented: Everything Within TensorFlow Model
 
 All normalization and un-scaling processes are now embedded within the TensorFlow model. No external sklearn preprocessing required.
 
@@ -67,9 +67,9 @@ class MinMaxScaleLayer(Layer):
 ```
 
 **Features:**
-- ✅ Full serialization support (get_config + from_config)
-- ✅ Embedding in TensorFlow graph via tf.constant
-- ✅ No trainable parameters (scales are fixed after adapt)
+- (Done!) Full serialization support (get_config + from_config)
+- (Done!) Embedding in TensorFlow graph via tf.constant
+- (Done!) No trainable parameters (scales are fixed after adapt)
 
 #### InverseMinMaxScaleLayer
 ```python
@@ -84,9 +84,9 @@ class InverseMinMaxScaleLayer(Layer):
 ```
 
 **Features:**
-- ✅ Automatic inverse transformation
-- ✅ Loaded from saved model without requiring external scaler
-- ✅ Enables end-to-end inference with single model call
+- (Done!) Automatic inverse transformation
+- (Done!) Loaded from saved model without requiring external scaler
+- (Done!) Enables end-to-end inference with single model call
 
 ### 2. Updated `build_model()` Function
 
@@ -116,10 +116,10 @@ def build_model(layers, inputs, y_train=None):
 ```
 
 **Changes:**
-- ✅ Accepts `y_train` parameter to adapt output scaler
-- ✅ Added `output_scale` layer that scales model outputs [0.1, 0.9]
-- ✅ Stores scaler for creating inference model
-- ✅ Raw output accessible via `emm_ec_raw` layer for inverse-scaling
+- (Done!) Accepts `y_train` parameter to adapt output scaler
+- (Done!) Added `output_scale` layer that scales model outputs [0.1, 0.9]
+- (Done!) Stores scaler for creating inference model
+- (Done!) Raw output accessible via `emm_ec_raw` layer for inverse-scaling
 
 ### 3. New `create_inference_model()` Function
 
@@ -144,10 +144,10 @@ def create_inference_model(model):
 ```
 
 **Benefits:**
-- ✅ Automatic creation of inference model from trained model
-- ✅ Inverse-scaling built into the model graph
-- ✅ Single model call produces original-unit predictions
-- ✅ No external preprocessing needed
+- (Done!) Automatic creation of inference model from trained model
+- (Done!) Inverse-scaling built into the model graph
+- (Done!) Single model call produces original-unit predictions
+- (Done!) No external preprocessing needed
 
 ---
 
@@ -209,9 +209,9 @@ notebook: predictions → sklearn inverse_transform → original units
 ```
 
 **Issues:**
-- ❌ Scaler is external to model
-- ❌ Two separate objects to manage
-- ❌ Inference requires external scaler object
+- (Issue) Scaler is external to model
+- (Issue) Two separate objects to manage
+- (Issue) Inference requires external scaler object
 
 ### After (Pure Model-Based Scaling)
 ```
@@ -223,26 +223,33 @@ inference_model: InverseMinMaxScaleLayer → original units (embedded in model)
 ```
 
 **Benefits:**
-- ✅ All scaling inside model
-- ✅ Scalers part of model weights/config
-- ✅ Single model file contains everything
-- ✅ Inference is self-contained
+- (Done!) All scaling inside model
+- (Done!) Scalers part of model weights/config
+- (Done!) Single model file contains everything
+- (Done!) Inference is self-contained
 
 ---
 
 ## Model Serialization
 
 ### Training Model
-- Saved to: `./Export/emmaton/`
+- Saved to: `./Export/{station_name}/` (e.g., `./Export/RSAC054_EC/`)
 - Contains: Input normalization + Dense layers + Output scaling
 - Outputs: Scaled [0.1, 0.9]
 - Load with: `tf.keras.models.load_model(path, custom_objects=custom_objects)`
 
 ### Inference Model
-- Saved to: `./Export/emmaton/inference_model/`
+- Saved to: `./Export/{station_name}/inference_model/`
 - Contains: Everything in training model + Inverse scaling layer
 - Outputs: Original EC units
 - Load with: `tf.keras.models.load_model(path, custom_objects=custom_objects)`
+
+### All 12 EC Stations
+```
+CVP_INTAKE_EC, MIDR_INTAKE_EC, OLDR_CCF_EC, ROLD024_EC,
+RSAC054_EC, RSAC081_EC, RSAC092_EC, RSAN007_EC,
+RSAN018_EC, SLMZU003_EC, SLMZU011_EC, VICT_INTAKE_EC
+```
 
 ### Custom Objects Required
 ```python
@@ -256,24 +263,24 @@ custom_objects = {
 
 ## Key Benefits
 
-1. **End-to-End Embedding** ✅
+1. **End-to-End Embedding** (Implemented!)
    - All preprocessing and post-processing embedded in model
    - Matches commit message goal
 
-2. **Self-Contained Models** ✅
+2. **Self-Contained Models** (Implemented!)
    - No external scaler objects needed
    - Single file deployment
 
-3. **Consistent Architecture** ✅
+3. **Consistent Architecture** (Implemented!)
    - Input normalization embedded
    - Output scaling embedded
    - Symmetric design
 
-4. **Automatic Inverse-Scaling** ✅
+4. **Automatic Inverse-Scaling** (Implemented!)
    - Inference model handles un-scaling automatically
    - One model call produces predictions in original units
 
-5. **Full Serialization** ✅
+5. **Full Serialization** (Implemented!)
    - get_config/from_config for all custom layers
    - Complete model reproducibility
 
