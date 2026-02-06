@@ -1,4 +1,4 @@
-# EC_estimator.py
+# X2_estimator.py
 import pandas as pd
 import numpy as np
 import tensorflow as tf
@@ -13,6 +13,68 @@ from sklearn.preprocessing import MinMaxScaler
 import matplotlib.pyplot as plt
 import os
 
+
+# ============================================================
+# Data Loading and Preprocessing Functions
+# ============================================================
+
+def load_and_preprocess_dataset(filepath):
+    """
+    Load and preprocess a single dataset file.
+    
+    Parameters
+    ----------
+    filepath : str
+        Path to CSV file with date index
+    
+    Returns
+    -------
+    pd.DataFrame
+        Preprocessed DataFrame with 'date' column as datetime
+    """
+    df = pd.read_csv(filepath, index_col=0)
+    df = df.reset_index()
+    df.columns = ["date"] + list(df.columns[1:])
+    df["date"] = pd.to_datetime(df["date"], errors="raise")
+    df = df.sort_values("date")
+    df = df.reset_index(drop=True)
+    return df
+
+
+def make_windows(df_raw, predictors, target, window):
+    """
+    Create sliding windows of input features and corresponding targets.
+    
+    Parameters
+    ----------
+    df_raw : pd.DataFrame
+        Raw dataframe with predictors and target columns
+    predictors : list
+        List of predictor column names
+    target : str
+        Target column name
+    window : int
+        Window size (number of days)
+    
+    Returns
+    -------
+    tuple
+        (X, y) where X has shape (N, window, n_predictors) and y has shape (N, 1)
+    """
+    X_all = df_raw[predictors].to_numpy()
+    y_all = df_raw[target].to_numpy().reshape(-1, 1)
+    if len(df_raw) < window:
+        raise ValueError(f"Not enough rows ({len(df_raw)}) to build a window of {window}.")
+    Xw, yw = [], []
+    for t in range(window - 1, len(df_raw)):
+        Xw.append(X_all[t - window + 1 : t + 1, :])
+        yw.append(y_all[t])
+    return np.stack(Xw, axis=0), np.vstack(yw)
+
+
+# ============================================================
+# Custom Scaling Layers
+# ============================================================
 
 # Custom MinMaxScaleLayer for storing scaling parameters
 class MinMaxScaleLayer(tf.keras.layers.Layer):
