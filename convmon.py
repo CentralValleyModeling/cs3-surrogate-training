@@ -16,7 +16,7 @@ def calculate_monthly_average(csv_filename):
 
     return monthly_avg
 
-csv_filename = 'C:/Users/hzamanis/Documents/ann_calsim_main/smscg_output_on.csv'
+csv_filename = 'Inputs/smscg_output_on.csv'
 monthly_average = calculate_monthly_average(csv_filename)
 print(monthly_average)
-monthly_average.to_csv('C:/Users/hzamanis/Documents/ann_calsim_main/monthly_ave_smscg_output_on.csv')
+monthly_average.to_csv('Inputs/monthly_ave_smscg_output_on.csv')
