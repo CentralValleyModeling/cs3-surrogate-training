@@ -1,0 +1,65 @@
+
+     HECDSS Condensed Catalog of Record Pathnames in File Inputs/dcr_base_1.dss
+
+     Catalog Created on May 15, 2026 at  7:35    File Created on Apr 23, 2026
+     Number of Records:   3403                   DSS Version 6-WE,  File 6-WE
+     Sort Order: ABCFED
+
+ Tag    A Part         B Part           C Part          F Part              E Part  D Part
+
+ T1838  CALSIM         C_CAA003_TD      FLOW-DELIVERY   L2020A              1MON    01JAN1920 - 01JAN2020
+ T1838  - - - - - -    C_CLV004         CHANNEL         L2020A              1MON    01JAN1920 - 01JAN2020
+ T1838  - - - - - -    C_CSL004A        CHANNEL         L2020A              1MON    01JAN1920 - 01JAN2020
+ T1838  - - - - - -    C_DMC000_TD      FLOW-DELIVERY   L2020A              1MON    01JAN1920 - 01JAN2020
+ T1838  - - - - - -    C_MOK019         CHANNEL         L2020A              1MON    01JAN1920 - 01JAN2020
+ T1838  - - - - - -    D408             FLOW-DELIVERY   L2020A              1MON    01JAN1920 - 01JAN2020
+ T1838  - - - - - -    DXC              GATE-DAYS-OPEN  L2020A              1MON    01JAN1920 - 01JAN2020
+ T1838  - - - - - -    D_SJR028_WTPDWS  DIVERSION       L2020A              1MON    01JAN1920 - 01JAN2020
+ T1838  - - - - - -    NET_DICU         DICU_FLOW       L2020A              1MON    01JAN1920 - 01JAN2020
+ T1838  - - - - - -    SMSCG_OP         GATE-OP-RATIO   L2020A_DCR25_BASE1  1MON    01JAN1920 - 01JAN2020
+ T1838  CALSIM-SMOOTH  C_SAC041         FLOW            L2020A_DCR25_BASE1  1DAY    01JAN1921 - 01JAN2021
+ T1838  - - - - - -    C_SJR070         FLOW            L2020A_DCR25_BASE1  1DAY    01JAN1921 - 01JAN2021
+ T1838  - - - - - -    NDOI             FLOW            L2020A_DCR25_BASE1  1DAY    01JAN1921 - 01JAN2021
+ T1838  DELTA          X2               POSITION        DCR25_BASE1         1DAY    01JAN1922 - 01JAN2021
+ T1838  - - - - - -    - - - - - - -    - - - - - - -   HIST                1DAY    01JAN1921 - 01JAN2020
+ T1838  - - - - - -    - - - - - - -    - - - - - - -   - - - - - - - - -   1MON    01JAN1920 - 01JAN2020
+ T1838  DWR            SAN_FRANCISCO    STAGE-MAX-MIN   ASTRO_20220627_PD   1DAY    01JAN1919 - 01JAN2030
+ T1838  QUALV8.2.1     BD_EC_MONTH      EC              HIST                1MON    01JAN1920 - 01JAN2020
+ T1838  - - - - - -    CI_EC_MONTH      EC              HIST                1MON    01JAN1920 - 01JAN2020
+ T1838  - - - - - -    CO_EC_MONTH      EC              HIST                1MON    01JAN1920 - 01JAN2020
+ T1838  - - - - - -    CVP_INTAKE       EC              HIST                1DAY    01JAN1921 - 01JAN2020
+ T1838  - - - - - -    EM_EC_MONTH      EC              HIST                1MON    01JAN1920 - 01JAN2020
+ T1838  - - - - - -    JP_EC_MONTH      EC              HIST                1MON    01JAN1920 - 01JAN2020
+ T1838  - - - - - -    MIDR_INTAKE      EC              HIST                1DAY    01JAN1921 - 01JAN2020
+ T1838  - - - - - -    OLDR_CCF         EC              HIST                1DAY    01JAN1921 - 01JAN2020
+ T1838  - - - - - -    ROLD024          EC              HIST                1DAY    01JAN1921 - 01JAN2020
+ T1838  - - - - - -    - - - - - - -    - - - - - - -   - - - - - - - - -   1MON    01JAN1920 - 01JAN2020
+ T1838  - - - - - -    RSAC054          EC              HIST                1DAY    01JAN1921 - 01JAN2020
+ T1838  - - - - - -    RSAC081          EC              HIST                1DAY    01JAN1921 - 01JAN2020
+ T1838  - - - - - -    - - - - - - -    - - - - - - -   - - - - - - - - -   1MON    01JAN1920 - 01JAN2020
+ T1838  - - - - - -    RSAC092          EC              HIST                1DAY    01JAN1921 - 01JAN2020
+ T1838  - - - - - -    - - - - - - -    - - - - - - -   - - - - - - - - -   1MON    01JAN1920 - 01JAN2020
+ T1838  - - - - - -    RSAN007          EC              HIST                1DAY    01JAN1921 - 01JAN2020
+ T1838  - - - - - -    RSAN018          EC              HIST                1DAY    01JAN1921 - 01JAN2020
+ T1838  - - - - - -    - - - - - - -    - - - - - - -   - - - - - - - - -   1MON    01JAN1920 - 01JAN2020
+ T1838  - - - - - -    RS_EC_MONTH      EC              HIST                1MON    01JAN1920 - 01JAN2020
+ T1838  - - - - - -    SLMZU003         EC              HIST                1DAY    01JAN1921 - 01JAN2020
+ T1838  - - - - - -    SLMZU011         EC              HIST                1DAY    01JAN1921 - 01JAN2020
+ T1838  - - - - - -    VICT_INTAKE      EC              HIST                1DAY    01JAN1921 - 01JAN2020
+ T1838  - - - - - -    VI_EC_MONTH      EC              HIST                1MON    01JAN1920 - 01JAN2020
+ T1838  QUALV8.5.0     CVP_INTAKE       EC              DCR25_BASE1         1DAY    01JAN1921 - 01JAN2021
+ T1838  - - - - - -    MIDR_INTAKE      EC              DCR25_BASE1         1DAY    01JAN1921 - 01JAN2021
+ T1838  - - - - - -    OLDR_CCF         EC              DCR25_BASE1         1DAY    01JAN1921 - 01JAN2021
+ T1838  - - - - - -    ROLD024          EC              DCR25_BASE1         1DAY    01JAN1921 - 01JAN2021
+ T1838  - - - - - -    - - - - - - -    - - - - - - -   - - - - - - - - -   1MON    01JAN1920 - 01JAN2020
+ T1838  - - - - - -    ROLD034          EC              DCR25_BASE1         1DAY    01JAN1921 - 01JAN2021
+ T1838  - - - - - -    RSAC054          EC              DCR25_BASE1         1DAY    01JAN1921 - 01JAN2021
+ T1838  - - - - - -    RSAC075          EC              DCR25_BASE1         1DAY    01JAN1921 - 01JAN2021
+ T1838  - - - - - -    RSAC081          EC              DCR25_BASE1         1DAY    01JAN1921 - 01JAN2021
+ T1838  - - - - - -    - - - - - - -    - - - - - - -   - - - - - - - - -   1MON    01JAN1920 - 01JAN2020
+ T1838  - - - - - -    RSAC092          EC              DCR25_BASE1         1DAY    01JAN1921 - 01JAN2021
+ T1838  - - - - - -    RSAN007          EC              DCR25_BASE1         1DAY    01JAN1921 - 01JAN2021
+ T1838  - - - - - -    RSAN018          EC              DCR25_BASE1         1DAY    01JAN1921 - 01JAN2021
+ T1838  - - - - - -    - - - - - - -    - - - - - - -   - - - - - - - - -   1MON    01JAN1920 - 01JAN2020
+ T1838  - - - - - -    SLMZU011         EC              DCR25_BASE1         1DAY    01JAN1921 - 01JAN2021
+ T1838  - - - - - -    VICT_INTAKE      EC              DCR25_BASE1         1DAY    01JAN1921 - 01JAN2021
